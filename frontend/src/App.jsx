@@ -115,47 +115,75 @@ const currentError =
   },
 ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNewsIndex((prev) => (prev + 1) % newsSlides.length);
-    }, 4000);
+  // =====================
+// AUTO SLIDE NEWS
+// =====================
+useEffect(() => {
+  const interval = setInterval(() => {
+    setNewsIndex((prev) => (prev + 1) % newsSlides.length);
+  }, 4000);
 
-    return () => clearInterval(interval);
-  }, []);
+  return () => clearInterval(interval);
+}, []);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(
-        "analysis_history"
-      );
+// =====================
+// LOAD HISTORY FROM LOCALSTORAGE
+// =====================
+useEffect(() => {
+  try {
+    const saved = localStorage.getItem("analysis_history");
 
-      if (saved) {
-        setHistory(JSON.parse(saved));
-      }
-    } catch (err) {
-      console.log(err);
+    if (saved) {
+      setHistory(JSON.parse(saved));
     }
-  }, []);
+  } catch (err) {
+    console.log("Error load history:", err);
+  }
+}, []);
 
-  useEffect(() => {
+// =====================
+// SAVE HISTORY TO LOCALSTORAGE
+// =====================
+useEffect(() => {
+  try {
     localStorage.setItem(
       "analysis_history",
       JSON.stringify(history)
     );
-  }, [history]);
+  } catch (err) {
+    console.log("Error save history:", err);
+  }
+}, [history]);
 
-  const analyzeText = async () => {
+// =====================
+// API BASE URL
+// =====================
+const API_URL =
+  "https://enricooctadarma-aksarasense-backend.hf.space";
+
+// =====================
+// ANALYZE TEXT (MAIN FUNCTION)
+// =====================
+const analyzeText = async () => {
   if (!text.trim()) return;
 
   setLoading(true);
 
   try {
     const response = await axios.post(
-  "https://enricooctadarma-aksarasense-backend.hf.space/predict",
-  {
-    text: text
-  }
-);
+      `${API_URL}/predict`,
+      { text },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      }
+    );
+
+    if (!response?.data) {
+      throw new Error("Backend tidak mengembalikan data");
+    }
 
     const data = response.data;
 
@@ -171,40 +199,56 @@ const currentError =
     setResult(newResult);
     setHistory((prev) => [newResult, ...prev]);
   } catch (error) {
-    console.error(error);
+    console.error("Analyze error:", error);
+
+    if (error.response) {
+      console.error("Backend response error:", error.response.data);
+    } else if (error.request) {
+      console.error("No response from backend");
+    } else {
+      console.error("Axios error:", error.message);
+    }
+
     alert("Gagal terhubung ke backend");
   } finally {
     setLoading(false);
   }
 };
 
-  const clearText = () => {
-    setText("");
-    setResult(null);
-  };
-  const openHistory = (item) => {
+// =====================
+// CLEAR RESULT
+// =====================
+const clearText = () => {
+  setText("");
+  setResult(null);
+};
+
+// =====================
+// OPEN HISTORY ITEM
+// =====================
+const openHistory = (item) => {
   setResult(item);
   setText(item.text);
 };
 
+// =====================
+// DELETE SINGLE HISTORY
+// =====================
 const deleteHistory = (id) => {
-  setHistory((prev) =>
-    prev.filter(
-      (item) => item.id !== id
-    )
-  );
+  setHistory((prev) => prev.filter((item) => item.id !== id));
 };
 
+// =====================
+// CLEAR ALL HISTORY
+// =====================
 const clearAllHistory = () => {
-  if (
-    window.confirm(
-      "Yakin ingin menghapus semua history?"
-    )
-  ) {
+  const confirmDelete = window.confirm(
+    "Yakin ingin menghapus semua history?"
+  );
+
+  if (confirmDelete) {
     setHistory([]);
-    localStorage.removeItem(
-      "analysis_history"
-    );
+    localStorage.removeItem("analysis_history");
   }
 };
 
