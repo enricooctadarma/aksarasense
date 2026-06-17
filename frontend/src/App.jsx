@@ -13,7 +13,7 @@ export default function App() {
   const [text, setText] = useState("");
 const [model] = useState("BiLSTM");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState([]);
   const [history, setHistory] = useState([]);
 
   const [newsIndex, setNewsIndex] = useState(0);
@@ -96,159 +96,128 @@ const currentError =
   }
 ];
 
-  const team = [
+const team = [
   {
     name: "Nicholas Ghonius",
     role: "AI Engineer",
+    id: "APC005D6Y0498",
     img: nicholas
   },
   {
     name: "Dikri Pajar Alip Nurrohman",
     role: "AI Engineer",
+    id: "APC012D6Y0486",
     img: dikry
-  
   },
   {
     name: "Enrico Octadarma Hulu",
     role: "AI Engineer",
+    id: "APC917D6Y0520",
     img: enrico
   },
 ];
 
-  // =====================
-// AUTO SLIDE NEWS
-// =====================
-useEffect(() => {
-  const interval = setInterval(() => {
-    setNewsIndex((prev) => (prev + 1) % newsSlides.length);
-  }, 4000);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNewsIndex((prev) => (prev + 1) % newsSlides.length);
+    }, 4000);
 
-  return () => clearInterval(interval);
-}, []);
+    return () => clearInterval(interval);
+  }, []);
 
-// =====================
-// LOAD HISTORY FROM LOCALSTORAGE
-// =====================
-useEffect(() => {
-  try {
-    const saved = localStorage.getItem("analysis_history");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(
+        "analysis_history"
+      );
 
-    if (saved) {
-      setHistory(JSON.parse(saved));
+      if (saved) {
+        setHistory(JSON.parse(saved));
+      }
+    } catch (err) {
+      console.log(err);
     }
-  } catch (err) {
-    console.log("Error load history:", err);
-  }
-}, []);
+  }, []);
 
-// =====================
-// SAVE HISTORY TO LOCALSTORAGE
-// =====================
-useEffect(() => {
-  try {
+  useEffect(() => {
     localStorage.setItem(
       "analysis_history",
       JSON.stringify(history)
     );
-  } catch (err) {
-    console.log("Error save history:", err);
-  }
-}, [history]);
+  }, [history]);
 
-// =====================
-// API BASE URL
-// =====================
-const API_URL =
-  "https://enricooctadarma-aksarasense-backend.hf.space";
-
-// =====================
-// ANALYZE TEXT (MAIN FUNCTION)
-// =====================
-const analyzeText = async () => {
+  const analyzeText = async () => {
   if (!text.trim()) return;
 
   setLoading(true);
 
   try {
-    const response = await axios.post(
-      `${API_URL}/predict`,
-      { text },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 15000,
-      }
-    );
+    const sentences = text
+      .split(".")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
-    if (!response?.data) {
-      throw new Error("Backend tidak mengembalikan data");
+    const results = [];
+
+    for (let s of sentences) {
+      const response = await axios.post("http://127.0.0.1:5000/predict", {
+        text: s,
+      });
+
+      const data = response.data;
+const isWrong = data.status === "Salah";
+
+if (isWrong) {
+  results.push({
+    id: Date.now() + Math.random(),
+    text: s,
+    error_type: data.error_type,
+    confidence: data.confidence,
+    status: data.status,
+    probabilities: data.probabilities,
+    sequence: data.sequence,
+    time: new Date().toLocaleTimeString(),
+  });
+}
     }
 
-    const data = response.data;
-
-    const newResult = {
-      id: Date.now(),
-      text,
-      model,
-      error_type: data.error_type,
-      confidence: data.confidence,
-      time: new Date().toLocaleTimeString(),
-    };
-
-    setResult(newResult);
-    setHistory((prev) => [newResult, ...prev]);
+    setResult(results);
+    setHistory((prev) => [...results, ...prev]);
   } catch (error) {
-    console.error("Analyze error:", error);
-
-    if (error.response) {
-      console.error("Backend response error:", error.response.data);
-    } else if (error.request) {
-      console.error("No response from backend");
-    } else {
-      console.error("Axios error:", error.message);
-    }
-
+    console.error(error);
     alert("Gagal terhubung ke backend");
   } finally {
     setLoading(false);
   }
 };
 
-// =====================
-// CLEAR RESULT
-// =====================
-const clearText = () => {
-  setText("");
-  setResult(null);
-};
-
-// =====================
-// OPEN HISTORY ITEM
-// =====================
-const openHistory = (item) => {
-  setResult(item);
+  const clearText = () => {
+    setText("");
+    setResult([]);
+  };
+  const openHistory = (item) => {
+  setResult([item]);
   setText(item.text);
 };
 
-// =====================
-// DELETE SINGLE HISTORY
-// =====================
 const deleteHistory = (id) => {
-  setHistory((prev) => prev.filter((item) => item.id !== id));
+  setHistory((prev) =>
+    prev.filter(
+      (item) => item.id !== id
+    )
+  );
 };
 
-// =====================
-// CLEAR ALL HISTORY
-// =====================
 const clearAllHistory = () => {
-  const confirmDelete = window.confirm(
-    "Yakin ingin menghapus semua history?"
-  );
-
-  if (confirmDelete) {
+  if (
+    window.confirm(
+      "Yakin ingin menghapus semua history?"
+    )
+  ) {
     setHistory([]);
-    localStorage.removeItem("analysis_history");
+    localStorage.removeItem(
+      "analysis_history"
+    );
   }
 };
 
@@ -404,175 +373,201 @@ const clearAllHistory = () => {
         </div>
       </section>
 
-      {/* ANALYSIS */}
-      <section className="analysis container">
-        <div className="analysis-grid">
-          <div className="analysis-card">
-            <h2>
-              Analisis Teks
-            </h2>
-<div className="single-model-card">
-  <h4>BiLSTM</h4>
-  <span>Model Aktif</span>
-</div>
-            <textarea
-              rows="10"
-              className="text-input"
-              value={text}
-              onChange={(e) =>
-                setText(
-                  e.target.value
-                )
-              }
-              placeholder="Masukkan teks..."
-            />
+ {/* ANALYSIS */}
+<section className="analysis container">
+  <div className="analysis-grid">
 
-            <div className="text-meta">
-              <span>
-                {text.length}
-                {" "}karakter
-              </span>
+    {/* INPUT PANEL */}
+    <div className="analysis-card">
 
-              <button
-                className="clear-btn"
-                onClick={
-                  clearText
-                }
-              >
-                Clear
-              </button>
-            </div>
+      {/* HEADER */}
+      <div className="analysis-header">
+        <h2>Analisis Teks</h2>
+      </div>
 
-            <button
-              className="analyze-btn"
-              onClick={
-                analyzeText
-              }
-              disabled={
-                loading
-              }
-            >
-              {loading
-                ? "Analyzing..."
-                : "Cek Sekarang!"}
-            </button>
-          </div>
+      {/* MODEL STATUS */}
+      <div className="model-status">
+        <div className="status-dot" />
+        <span>BiLSTM • Active Model</span>
+      </div>
 
-          <div className="result-panel">
-            {!result ? (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  🤖
-                </div>
+      {/* INSTRUCTION */}
+      <div className="input-guide">
+        <p>
+          ⚠️ <b>Petunjuk Input:</b> 1 kalimat harus diakhiri dengan titik (.)
+          dan jika lebih dari 1 kalimat, pisahkan dengan <b>titik + spasi (. )</b>
+        </p>
+      </div>
 
-                <h3>
-                  Tunggu Analisis
-                </h3>
-
-                <p>
-                  Masukkan
-                  teks untuk
-                  memulai
-                  analisis.
-                </p>
-              </div>
-            ) : (
-<div className="result-box premium-result">
-<h3>Hasil Analisis BiLSTM</h3>
-
-<div className="result-badges">
-  <span className="badge-error">
-    {result.error_type}
-  </span>
-
-  <span className="badge-confidence">
-    {(result.confidence * 100).toFixed(2)}%
-  </span>
-</div>
-
-<p className="result-time">
-  {result.time}
-</p>
-
-<div className="text-preview">
-  {result.text}
-</div>
-
-<div className="result-description">
-  <h4>Interpretasi Model</h4>
-
-  <p>
-    Sistem mendeteksi bahwa kalimat
-    memiliki kecenderungan termasuk
-    kategori <b>{result.error_type} </b>
-    dengan tingkat keyakinan
-    <b>
-      {" "}
-      {(result.confidence * 100).toFixed(2)}%
-    </b>.
-  </p>
-
-  {currentError && (
-    <>
-      <hr
-        style={{
-          margin: "15px 0",
-          opacity: 0.2,
-        }}
+      {/* INPUT */}
+      <textarea
+        rows="10"
+        className="text-input"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Masukkan teks yang ingin dianalisis..."
       />
 
-      <h4>
-        {currentError.title}
-      </h4>
+      {/* META */}
+      <div className="text-meta">
+        <span>{text.length} karakter</span>
 
-      <p>
-        {currentError.description}
-      </p>
-    </>
-  )}
-</div>
-              </div>
-            )}
+        <button className="clear-btn" onClick={clearText}>
+          Clear
+        </button>
+      </div>
+
+      {/* ACTION */}
+      <button
+        className="analyze-btn"
+        onClick={analyzeText}
+        disabled={loading}
+      >
+        {loading ? "Analyzing..." : "Mulai Analisis"}
+      </button>
+
+    </div>
+
+    {/* RESULT PANEL */}
+    <div className="result-panel">
+
+      {/* EMPTY STATE */}
+      {!Array.isArray(result) || result.length === 0 ? (
+        <div className="empty-state">
+
+          <div className="empty-icon">🤖</div>
+
+          <h3>Menunggu Input</h3>
+
+          <p>
+            Masukkan kalimat untuk melihat deteksi kesalahan oleh model BiLSTM
+          </p>
+
+          <div className="hint-box">
+            Contoh: <b>"Saya pegi ke sekolah kemarin."</b>
           </div>
-        </div>
-      </section>
 
-      {/* HISTORY */}
-     <section className="history container">
+        </div>
+      ) : (
+
+        <div className="result-box premium-result">
+
+          {/* RESULT HEADER */}
+          <div className="result-header">
+            <h3>Hasil Analisis</h3>
+            <span className="result-count">
+              {result.length} kalimat dianalisis
+            </span>
+          </div>
+
+          {/* RESULT LIST */}
+          <div className="text-preview">
+
+            {result.map((r, index) => {
+              const isWrong = r.status === "Salah";
+
+              return (
+                <div
+                  key={r.id}
+                  className={`result-card ${isWrong ? "wrong" : "correct"}`}
+                >
+
+                  {/* STATUS ROW */}
+                  <div className="result-top">
+
+                    {/* STATUS BADGE */}
+                    <span className={`status-badge ${isWrong ? "wrong" : "correct"}`}>
+                      {r.status === "Salah" ? "Salah" : "Benar"}
+                    </span>
+
+                    {/* CONFIDENCE */}
+                    <span className="confidence">
+                      {(r.confidence * 100).toFixed(2)}%
+                    </span>
+
+                  </div>
+
+                  {/* TEXT */}
+                  <div className="analysis-text">
+                    <span className={isWrong ? "error-underline" : ""}>
+                      {r.text}
+                    </span>
+                  </div>
+
+                  {/* ERROR TYPE */}
+                  <div className="error-type">
+                    {r.error_type}
+                  </div>
+
+                  {/* NUMBERING ONLY FOR WRONG SENTENCES */}
+                  {isWrong && (
+                    <div className="error-number">
+                      Kesalahan #{index + 1}
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+
+          </div>
+
+          {/* FOOTER */}
+          <div className="result-description">
+            <h4>Interpretasi Model</h4>
+            <p>
+              Model BiLSTM menganalisis setiap kalimat secara independen
+              untuk mendeteksi kesalahan penulisan Bahasa Indonesia.
+            </p>
+          </div>
+
+        </div>
+      )}
+
+    </div>
+
+  </div>
+</section>
+
+{/* HISTORY */}
+<section className="history container">
   <div className="history-header">
-    <h2 className="section-title">
-      Analisis Terbaru
-    </h2>
+    <h2 className="section-title">Riwayat Analisis</h2>
 
     {history.length > 0 && (
-      <button
-        className="delete-all-btn"
-        onClick={clearAllHistory}
-      >
+      <button className="delete-all-btn" onClick={clearAllHistory}>
         🗑 Hapus Semua
       </button>
     )}
   </div>
 
-  <div className="history-grid">
-    {history.length === 0 ? (
-      <p>Belum ada analisis.</p>
-    ) : (
-      history.map((h) => (
-        <div
-          key={h.id}
-          className="history-card"
-          onClick={() =>
-            openHistory(h)
-          }
-        >
-          <div className="history-top">
-            <span>{h.model}</span>
+  {/* SCROLL AREA */}
+  <div className="history-scroll">
 
-            <div>
-              <small>
-                {h.time}
-              </small>
+    {history.length === 0 ? (
+      <p className="empty-history">Belum ada analisis.</p>
+    ) : (
+
+      history.map((h) => {
+
+        const preview =
+          h.text?.length > 90
+            ? h.text.slice(0, 90) + "..."
+            : h.text || "-";
+
+        return (
+          <div
+            key={h.id}
+            className="history-card"
+            onClick={() => openHistory(h)}
+          >
+
+            {/* TOP */}
+            <div className="history-top">
+
+              <span className="history-model">
+                {h.model || "BiLSTM"}
+              </span>
 
               <button
                 className="delete-btn"
@@ -583,16 +578,20 @@ const clearAllHistory = () => {
               >
                 🗑
               </button>
-            </div>
-          </div>
 
-          <p>
-            {h.text.slice(0, 100)}
-            ...
-          </p>
-        </div>
-      ))
+            </div>
+
+            {/* TEXT */}
+            <p className="history-text">
+              {preview}
+            </p>
+
+          </div>
+        );
+      })
+
     )}
+
   </div>
 </section>
 
@@ -628,7 +627,14 @@ const clearAllHistory = () => {
                     }
                   </h3>
 
-                  <p>
+               
+
+
+<span className="team-id">
+  {member.id}
+</span>
+
+   <p>
                     {
                       member.role
                     }
