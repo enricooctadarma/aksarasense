@@ -28,19 +28,26 @@ encoder = None
 def load_all():
     global model, tokenizer, encoder
 
-    # Load model
+    # LOAD MODEL (FIX KERAS COMPATIBILITY ISSUE)
     if model is None:
-        model = tf.keras.models.load_model(
-            "bilstm_error_model.h5",
-            compile=False
-        )
+        try:
+            model = tf.keras.models.load_model(
+                "bilstm_error_model.h5",
+                compile=False,
+                custom_objects={
+                    "InputLayer": tf.keras.layers.InputLayer
+                }
+            )
+        except Exception as e:
+            print("MODEL LOAD ERROR:", str(e))
+            raise e
 
-    # Load tokenizer
+    # LOAD TOKENIZER
     if tokenizer is None:
         with open("tokenizer.pkl", "rb") as f:
             tokenizer = pickle.load(f)
 
-    # Load label encoder
+    # LOAD LABEL ENCODER
     if encoder is None:
         with open("label_encoder.pkl", "rb") as f:
             encoder = pickle.load(f)
@@ -49,7 +56,7 @@ def load_all():
 
 
 # =====================
-# ROUTE
+# PREDICT ROUTE
 # =====================
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -65,18 +72,23 @@ def predict():
 
         text = data["text"]
 
-        # preprocessing
+        # =====================
+        # PREPROCESSING
+        # =====================
         seq = tokenizer.texts_to_sequences([text])
         seq = pad_sequences(seq, maxlen=MAX_LEN, padding="post")
 
-        # prediction
+        # =====================
+        # PREDICTION
+        # =====================
         pred = model.predict(seq, verbose=0)
         idx = int(np.argmax(pred))
 
         label = encoder.inverse_transform([idx])[0]
         confidence = float(np.max(pred))
 
-        status = "SALAH" if label.lower() != "correct" else "BENAR"
+        # FIX STATUS LOGIC
+        status = "BENAR" if label.strip().lower() in ["correct", "benar"] else "SALAH"
 
         return jsonify({
             "text": text,
@@ -86,13 +98,14 @@ def predict():
         })
 
     except Exception as e:
+        print("PREDICT ERROR:", str(e))
         return jsonify({
             "error": str(e)
         }), 500
 
 
 # =====================
-# HEALTH CHECK (optional tapi bagus)
+# HEALTH CHECK
 # =====================
 @app.route("/", methods=["GET"])
 def home():
@@ -102,7 +115,7 @@ def home():
 
 
 # =====================
-# RUN APP (Hugging Face friendly)
+# RUN (Hugging Face friendly)
 # =====================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
