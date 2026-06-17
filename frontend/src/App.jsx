@@ -160,7 +160,7 @@ const team = [
     const results = [];
 
     for (let s of sentences) {
-      const response = await axios.post("http://127.0.0.1:5000/predict", {
+      const response = await axios.post("https://enricooctadarma-aksarasense-backend.hf.space/predict", {
         text: s,
       });
 
