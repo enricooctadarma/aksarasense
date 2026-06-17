@@ -3,15 +3,18 @@ import numpy as np
 import pickle
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import tensorflow as tf
 
 app = Flask(__name__)
 
 MAX_LEN = 50
 
 # LOAD MODEL
+
 model = load_model(
     "bilstm_error_model.h5",
-    compile=False
+    compile=False,
+    custom_objects={"Embedding": tf.keras.layers.Embedding}
 )
 
 with open("tokenizer.pkl", "rb") as f:
