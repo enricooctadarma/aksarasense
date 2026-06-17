@@ -213,7 +213,6 @@ User → Frontend React → Axios → Flask API → Tokenizer → Padding → Bi
 ## 🔮 Pengembangan Selanjutnya
 
 - Auto-correction
-- Highlight kata salah
 - Saran perbaikan kalimat
 - Deteksi typo lebih detail
 
