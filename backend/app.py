@@ -13,10 +13,13 @@ MAX_LEN = 50
 
 # LOAD MODEL
 
-model = load_model(
+model = tf.keras.models.load_model(
     "bilstm_error_model.h5",
     compile=False,
-    custom_objects={"Embedding": tf.keras.layers.Embedding}
+    custom_objects={
+        "InputLayer": tf.keras.layers.InputLayer,
+        "Embedding": tf.keras.layers.Embedding
+    }
 )
 
 with open("tokenizer.pkl", "rb") as f:
