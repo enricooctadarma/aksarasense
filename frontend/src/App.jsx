@@ -151,8 +151,10 @@ const currentError =
 
   try {
     const response = await axios.post(
-  "https://enricooctadarma-aksarasense-backend.hf.space/run/predict",
-  { data: [text] }
+  "https://enricooctadarma-aksarasense-backend.hf.space/predict",
+  {
+    text: text
+  }
 );
 
     const data = response.data;
