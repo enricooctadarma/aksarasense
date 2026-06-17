@@ -1,8 +1,10 @@
-import gradio as gr
+from flask import Flask, request, jsonify
 import numpy as np
 import pickle
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+app = Flask(__name__)
 
 MAX_LEN = 50
 
@@ -16,7 +18,12 @@ with open("label_encoder.pkl", "rb") as f:
     encoder = pickle.load(f)
 
 
-def predict_text(text):
+@app.route("/predict", methods=["POST"])
+def predict():
+    data = request.get_json()
+
+    text = data["text"]
+
     seq = tokenizer.texts_to_sequences([text])
     seq = pad_sequences(seq, maxlen=MAX_LEN, padding="post")
 
@@ -28,19 +35,13 @@ def predict_text(text):
 
     status = "SALAH" if label != "Correct" else "BENAR"
 
-    return {
+    return jsonify({
         "text": text,
         "status": status,
         "error_type": label,
         "confidence": confidence
-    }
+    })
 
 
-demo = gr.Interface(
-    fn=predict_text,
-    inputs=gr.Textbox(label="Masukkan Kalimat"),
-    outputs="json",
-    title="AksaraSense - BiLSTM Error Detection"
-)
-
-demo.launch()
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=7860)
