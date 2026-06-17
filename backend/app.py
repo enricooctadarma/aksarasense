@@ -9,7 +9,10 @@ app = Flask(__name__)
 MAX_LEN = 50
 
 # LOAD MODEL
-model = load_model("bilstm_error_model.h5")
+model = load_model(
+    "bilstm_error_model.h5",
+    compile=False
+)
 
 with open("tokenizer.pkl", "rb") as f:
     tokenizer = pickle.load(f)
