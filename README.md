@@ -401,7 +401,7 @@ https://huggingface.co/spaces/enricooctadarma/aksarasense-backend
 https://drive.google.com/drive/folders/1BN5JqolhFwUr6S4htooLoiSCMI_omb7r?usp=drive_link
 
 ### Google Colab Training
-
+https://colab.research.google.com/drive/1_A_KIhxNA8F6CO9poGPxyMCjXWgr3yDP?usp=sharing
 
 ### Video Presentasi
 
